@@ -1,47 +1,36 @@
+
 import streamlit as st
 import os
 from dotenv import load_dotenv
 import openai
 
-# ENV
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Agent tanımları
-def kod_partneri_agent(prompt):
-    system_message = """Sen bir Kod Partnerisin. Görevin kullanıcının verdiği kodu analiz etmek, düzeltmek, refactor etmek ve test senaryoları önermektir."""
-    return gpt_response(system_message, prompt)
-
-def prompt_atolyesi_agent(prompt):
-    system_message = """Sen bir Prompt Mühendisliği Uzmanısın. Kullanıcının verdiği fikri daha etkili hale getirmek için ileri düzey prompt önerileri yap."""
-    return gpt_response(system_message, prompt)
-
-def gpt_response(system_prompt, user_prompt):
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
-    response = openai.ChatCompletion.create(
-        model="gpt-4", messages=messages, temperature=0.7
-    )
-    return response['choices'][0]['message']['content']
-
-# UI
 st.set_page_config(page_title="Srhot AI Agents", layout="wide")
-st.title("🤖 Srhot'ın Kişisel AI Asistanları")
+st.title("🧠 Srhot AI Agents")
 
-st.sidebar.header("Modül Seç")
-agent_type = st.sidebar.selectbox("Bir görev seç:", ["Kod Partneri", "Prompt Atölyesi"])
+agent_type = st.selectbox("Agent rolünü seçin:", ["🎯 Hedef Koçu", "🧰 Kod Asistanı", "🔍 Araştırma Ortağı", "📚 Bilgi Yöneticisi", "⏱️ Zaman Yöneticisi"])
+user_input = st.text_area("🔤 Sorunuzu yazın:")
 
-prompt = st.text_area("📝 Komutunuzu yazın:", height=200)
-submit = st.button("Çalıştır")
+def agent_prompt(role, question):
+    system_prompts = {
+        "🎯 Hedef Koçu": "Sen bir hedef koçusun. Kullanıcının kısa, orta ve uzun vadeli hedeflerini belirlemesine ve takip etmesine yardımcı ol.",
+        "🧰 Kod Asistanı": "Sen ileri düzey bir yazılım geliştirici asistanısın. Kullanıcının kodlarını analiz et, iyileştir ve açıklamalar yap.",
+        "🔍 Araştırma Ortağı": "Sen güvenilir bir araştırma partnerisin. Soruları kaynaklara dayalı şekilde kısa ve net özetle.",
+        "📚 Bilgi Yöneticisi": "Sen bir bilgi yönetimi uzmanısın. Kullanıcının notlarını düzenlemesine, ilişkilendirmesine ve bilgi mimarisi kurmasına yardım et.",
+        "⏱️ Zaman Yöneticisi": "Sen bir zaman yönetimi asistanısın. Kullanıcının zaman blokları oluşturmasına, plan yapmasına yardım et."
+    }
+    return [{"role": "system", "content": system_prompts[role]},
+            {"role": "user", "content": question}]
 
-if submit and prompt.strip() != "":
+if st.button("Yanıtla") and user_input:
     with st.spinner("Yanıt oluşturuluyor..."):
-        if agent_type == "Kod Partneri":
-            result = kod_partneri_agent(prompt)
-        elif agent_type == "Prompt Atölyesi":
-            result = prompt_atolyesi_agent(prompt)
-
-        st.markdown("### 🎯 Yanıt:")
-        st.code(result, language='markdown')
+        messages = agent_prompt(agent_type, user_input)
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=messages,
+            temperature=0.7
+        )
+        st.markdown("### ✅ Yanıt:")
+        st.write(response.choices[0].message["content"])
